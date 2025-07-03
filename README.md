@@ -20,7 +20,8 @@ MiniPlan là ứng dụng giúp sinh viên/sinh viên quản lý việc học hi
 
 ## 📦 Cách chạy thử
 ```bash
-git clone https://github.com/THAINGUYENPHAT/MiniPlan.git
-cd MiniPlan
-npm install
-npm run dev
+## 🔗 Link demo
+
+- 🌐 Website: [https://miniplan-c5a98.web.app](https://miniplan-c5a98.web.app)
+- 💾 GitHub: [https://github.com/THAINGUYENPHAT/MiniPlan](https://github.com/THAINGUYENPHAT/MiniPlan)
+
