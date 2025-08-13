@@ -19,6 +19,11 @@ import {
 } from "firebase/firestore";
 
 function TodoApp({ user }) {
+  const [todayOpen, setTodayOpen] = useState(true);
+  const [weekOpen, setWeekOpen] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+
+
   const [priorityFilter, setPriorityFilter] = useState("all");
 
   const [input, setInput] = useState("");
@@ -206,17 +211,81 @@ useEffect(() => {
 
 
 
-      <div className="bg-white/70 backdrop-blur-md p-4 rounded-2xl shadow-md border border-gray-200 mb-4">
-  <h3 className="text-lg font-bold mb-2">📅 Việc cần làm hôm nay</h3>
-  {todosToday.filter((todo) => !todo.done).length === 0 ? (
-  <p className="text-gray-600">Không có công việc nào hạn hôm nay 🎉</p>
-) : (
-  <ul className="space-y-1">
-    {todosToday
-      .filter((todo) => !todo.done) // chỉ hiện việc chưa hoàn thành
-      .map((todo) => (
-        <li key={todo.id} className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+   <div className="bg-white/70 backdrop-blur-md p-4 rounded-2xl shadow-md border border-gray-200 mb-4">
+  <h3
+    className="text-lg font-bold mb-2 cursor-pointer flex justify-between items-center"
+    onClick={() => setTodayOpen(!todayOpen)}
+  >
+    📅 Việc cần làm hôm nay
+    <span className="ml-2">{todayOpen ? "▲" : "▼"}</span>
+  </h3>
+
+  <div
+    className={`overflow-hidden transition-all duration-300 ${
+      todayOpen ? "max-h-[1000px]" : "max-h-0"
+    }`}
+  >
+    {todosToday.filter((todo) => !todo.done).length === 0 ? (
+      <p className="text-gray-600">Không có công việc nào hạn hôm nay 🎉</p>
+    ) : (
+      <ul className="space-y-1">
+        {todosToday
+          .filter((todo) => !todo.done)
+          .map((todo) => (
+            <li key={todo.id} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={todo.done}
+                onChange={() => toggleDone(todo)}
+                className="cursor-pointer"
+              />
+              <span>
+                {todo.text}
+                {todo.priority === 3 && " 🔴"}
+                {todo.priority === 2 && " 🟡"}
+                {todo.priority === 1 && " ⚪"}
+              </span>
+            </div>
+            <span className="text-sm text-gray-500">
+              {todo.deadline &&
+                new Date(todo.deadline.seconds * 1000).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+            </span>
+
+            </li>
+          ))}
+      </ul>
+    )}
+  </div>
+</div>
+
+
+
+
+<div className="bg-white/70 backdrop-blur-md p-4 rounded-2xl shadow-md border border-gray-200 mb-4">
+  <h3
+    className="text-lg font-bold mb-2 cursor-pointer flex justify-between items-center"
+    onClick={() => setWeekOpen(!weekOpen)}
+  >
+    🗓️ Mục tiêu tuần này!
+    <span className="ml-2">{weekOpen ? "▲" : "▼"}</span>
+  </h3>
+
+  <div
+    className={`overflow-hidden transition-all duration-300 ${
+      weekOpen ? "max-h-[1000px]" : "max-h-0"
+    }`}
+  >
+    {todosThisWeek.length === 0 ? (
+      <p className="text-gray-600">Không có việc nào trong tuần này ✌️</p>
+    ) : (
+      <ul className="space-y-1">
+        {todosThisWeek.map((todo) => (
+          <li key={todo.id} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
             <input
               type="checkbox"
               checked={todo.done}
@@ -231,41 +300,21 @@ useEffect(() => {
             </span>
           </div>
           <span className="text-sm text-gray-500">
-            {new Date(todo.deadline.seconds * 1000).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {todo.deadline &&
+              new Date(todo.deadline.seconds * 1000).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
           </span>
-        </li>
-      ))}
-  </ul>
-)}
 
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
 </div>
 
-<div className="bg-white/70 backdrop-blur-md p-4 rounded-2xl shadow-md border border-gray-200 mb-4">
 
-  <h3 className="text-lg font-bold mb-2">🗓️ Mục tiêu tuần này! </h3>
-  {todosThisWeek.length === 0 ? (
-    <p className="text-gray-600">Không có việc nào trong tuần này ✌️</p>
-  ) : (
-    <ul className="space-y-1">
-      {todosThisWeek.map((todo) => (
-        <li key={todo.id} className="flex items-center justify-between">
-          <span>
-            {todo.text}
-            {todo.priority === 3 && " 🔴"}
-            {todo.priority === 2 && " 🟡"}
-            {todo.priority === 1 && " ⚪"}
-          </span>
-          <span className="text-sm text-gray-500">
-            {new Date(todo.deadline.seconds * 1000).toLocaleString("vi-VN")}
-          </span>
-        </li>
-      ))}
-    </ul>
-  )}
-</div>
 
 
 
@@ -306,77 +355,103 @@ useEffect(() => {
         <button
   type="button"
   onClick={handleAdd}
-  className="z-50 relative bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl shadow transition border-red-500 border-4"
+  className="z-50 relative bg-pink-500 hover:bg-pink-600 text-white font-semibold px-4 py-2 rounded-xl shadow-md flex items-center gap-2 transition transform hover:scale-105 active:scale-95"
 >
-  ➕ Thêm công việc vào MiniPlan
+  <svg
+    className="w-5 h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+  Thêm công việc
 </button>
 
 
 
+
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 mb-4">
-        <button
-          onClick={() => setFilter("all")}
-          className={`px-3 py-2 rounded w-full sm:w-auto ${
-            filter === "all" ? "bg-blue-500 text-white" : "bg-gray-200"
-          }`}
-        >
-          📋 Tất cả
-        </button>
-        <button
-          onClick={() => setFilter("notdone")}
-          className={`px-3 py-2 rounded w-full sm:w-auto ${
-            filter === "notdone" ? "bg-blue-500 text-white" : "bg-gray-200"
-          }`}
-        >
-          🕓 Chưa làm
-        </button>
-        <button
-          onClick={() => setFilter("done")}
-          className={`px-3 py-2 rounded w-full sm:w-auto ${
-            filter === "done" ? "bg-blue-500 text-white" : "bg-gray-200"
-          }`}
-        >
-          ✅ Hoàn thành
-        </button>
-      </div>
+      {/* Nút toggle hiện/ẩn filter */}
+<button
+  onClick={() => setShowFilters(!showFilters)}
+  className="bg-gray-300 px-3 py-2 rounded mb-2 hover:bg-gray-400 transition"
+>
+  🔍 Bộ lọc {showFilters ? "▲" : "▼"}
+</button>
 
-      <div className="flex flex-col sm:flex-row gap-2 mb-4">
-  <button
-    onClick={() => setPriorityFilter("all")}
-    className={`px-3 py-2 rounded w-full sm:w-auto ${
-      priorityFilter === "all" ? "bg-purple-500 text-white" : "bg-gray-200"
-    }`}
-  >
-    🔍 Tất cả ưu tiên
-  </button>
-  <button
-    onClick={() => setPriorityFilter("3")}
-    className={`px-3 py-2 rounded w-full sm:w-auto ${
-      priorityFilter === "3" ? "bg-red-500 text-white" : "bg-gray-200"
-    }`}
-  >
-    🔴 Cao
-  </button>
-  <button
-    onClick={() => setPriorityFilter("2")}
-    className={`px-3 py-2 rounded w-full sm:w-auto ${
-      priorityFilter === "2" ? "bg-yellow-500 text-white" : "bg-gray-200"
-    }`}
-  >
-    🟡 Vừa
-  </button>
-  <button
-    onClick={() => setPriorityFilter("1")}
-    className={`px-3 py-2 rounded w-full sm:w-auto ${
-      priorityFilter === "1" ? "bg-gray-400 text-white" : "bg-gray-200"
-    }`}
-  >
-    ⚪ Thấp
-  </button>
+{/* Bộ lọc, ẩn khi showFilters = false */}
+<div
+  className={`overflow-hidden transition-all duration-300 ${
+    showFilters ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+  }`}
+>
+  <div className="flex flex-col sm:flex-row gap-2 mb-4">
+    <button
+      onClick={() => setFilter("all")}
+      className={`px-3 py-2 rounded w-full sm:w-auto ${
+        filter === "all" ? "bg-blue-500 text-white" : "bg-gray-200"
+      }`}
+    >
+      📋 Tất cả
+    </button>
+    <button
+      onClick={() => setFilter("notdone")}
+      className={`px-3 py-2 rounded w-full sm:w-auto ${
+        filter === "notdone" ? "bg-blue-500 text-white" : "bg-gray-200"
+      }`}
+    >
+      🕓 Chưa làm
+    </button>
+    <button
+      onClick={() => setFilter("done")}
+      className={`px-3 py-2 rounded w-full sm:w-auto ${
+        filter === "done" ? "bg-blue-500 text-white" : "bg-gray-200"
+      }`}
+    >
+      ✅ Hoàn thành
+    </button>
+  </div>
+
+  <div className="flex flex-col sm:flex-row gap-2 mb-4">
+    <button
+      onClick={() => setPriorityFilter("all")}
+      className={`px-3 py-2 rounded w-full sm:w-auto ${
+        priorityFilter === "all" ? "bg-purple-500 text-white" : "bg-gray-200"
+      }`}
+    >
+      🔍 Tất cả ưu tiên
+    </button>
+    <button
+      onClick={() => setPriorityFilter("3")}
+      className={`px-3 py-2 rounded w-full sm:w-auto ${
+        priorityFilter === "3" ? "bg-red-500 text-white" : "bg-gray-200"
+      }`}
+    >
+      🔴 Cao
+    </button>
+    <button
+      onClick={() => setPriorityFilter("2")}
+      className={`px-3 py-2 rounded w-full sm:w-auto ${
+        priorityFilter === "2" ? "bg-yellow-500 text-white" : "bg-gray-200"
+      }`}
+    >
+      🟡 Vừa
+    </button>
+    <button
+      onClick={() => setPriorityFilter("1")}
+      className={`px-3 py-2 rounded w-full sm:w-auto ${
+        priorityFilter === "1" ? "bg-gray-400 text-white" : "bg-gray-200"
+      }`}
+    >
+      ⚪ Thấp
+    </button>
+  </div>
 </div>
-      <ul className="space-y-2">
+
+{/* Todo list, filter vẫn áp dụng như cũ */}
+<ul className="space-y-2">
   {todos
     .filter((todo) => {
       const matchFilter =
@@ -395,65 +470,65 @@ useEffect(() => {
     })
     .map((todo) => (
       <li
-  key={todo.id}
-  className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-gray-100 px-4 py-3 rounded text-base transition-all duration-300 ease-in-out hover:scale-[1.02] ${
-    todo.done ? "opacity-50 line-through" : ""
-  }`}
->
-  <div className="flex-1">
-    <p>
-      {todo.text}
-      {todo.priority === 3 && " 🔴"}
-      {todo.priority === 2 && " 🟡"}
-      {todo.priority === 1 && " ⚪"}
-    </p>
-    {todo.deadline && (
-      <p className="text-sm text-gray-500">
-        ⏰ {new Date(todo.deadline.seconds * 1000).toLocaleString("vi-VN")}
-      </p>
-    )}
-  </div>
-
-  <div className="flex items-center gap-2">
-    <button
-      onClick={() => toggleDone(todo)}
-      className="text-sm bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded"
-    >
-      {todo.done ? "↩️ Hoàn tác" : "✅ Hoàn thành"}
-    </button>
-    <button
-      onClick={() => handleEdit(todo)}
-      className="text-sm bg-yellow-100 hover:bg-yellow-200 px-2 py-1 rounded"
-    >
-      ✏️ Sửa
-    </button>
-    <button
-      onClick={() => handleDelete(todo.id)}
-      className="text-sm bg-red-100 hover:bg-red-200 px-2 py-1 rounded"
-    >
-      🗑️ Xoá
-    </button>
-  </div>
-
-  {editId === todo.id && (
-    <div className="mt-2 w-full">
-      <input
-        value={editText}
-        onChange={(e) => setEditText(e.target.value)}
-        className="border p-1 rounded w-full"
-      />
-      <button
-        onClick={() => handleUpdate(todo.id)}
-        className="mt-1 bg-green-500 text-white px-2 py-1 rounded"
+        key={todo.id}
+        className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-gray-100 px-4 py-3 rounded text-base transition-all duration-300 ease-in-out hover:scale-[1.02] ${
+          todo.done ? "opacity-50 line-through" : ""
+        }`}
       >
-        💾 Lưu
-      </button>
-    </div>
-  )}
-</li>
+        <div className="flex-1">
+          <p>
+            {todo.text}
+            {todo.priority === 3 && " 🔴"}
+            {todo.priority === 2 && " 🟡"}
+            {todo.priority === 1 && " ⚪"}
+          </p>
+          {todo.deadline && (
+            <p className="text-sm text-gray-500">
+              ⏰ {new Date(todo.deadline.seconds * 1000).toLocaleString("vi-VN")}
+            </p>
+          )}
+        </div>
 
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => toggleDone(todo)}
+            className="text-sm bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded"
+          >
+            {todo.done ? "↩️ Hoàn tác" : "✅ Hoàn thành"}
+          </button>
+          <button
+            onClick={() => handleEdit(todo)}
+            className="text-sm bg-yellow-100 hover:bg-yellow-200 px-2 py-1 rounded"
+          >
+            ✏️ Sửa
+          </button>
+          <button
+            onClick={() => handleDelete(todo.id)}
+            className="text-sm bg-red-100 hover:bg-red-200 px-2 py-1 rounded"
+          >
+            🗑️ Xoá
+          </button>
+        </div>
+
+        {editId === todo.id && (
+          <div className="mt-2 w-full">
+            <input
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="border p-1 rounded w-full"
+            />
+            <button
+              onClick={() => handleUpdate(todo.id)}
+              className="mt-1 bg-green-500 text-white px-2 py-1 rounded"
+            >
+              💾 Lưu
+            </button>
+          </div>
+        )}
+      </li>
     ))}
 </ul>
+
 
 
 
