@@ -23,6 +23,7 @@ function TodoApp({ user }) {
   const [weekOpen, setWeekOpen] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
 
+  const [showAttributes, setShowAttributes] = useState(false);
 
   const [priorityFilter, setPriorityFilter] = useState("all");
 
@@ -184,7 +185,7 @@ useEffect(() => {
 
 
   <h1 className="text-4xl font-bold text-center text-blue-600">
-  Chào mừng đến với MiniPlan 🎯
+  MiniPlan 🎯
 </h1>
 
 
@@ -195,7 +196,7 @@ useEffect(() => {
 
 
       <p className="text-center text-gray-600 mb-6">
-        MiniPlan là ứng dụng giúp bạn lập kế hoạch mỗi ngày, hoàn thành mục tiêu dễ dàng và theo dõi tiến độ công việc.
+        Quản lí kế hoạch dễ dàng!!!
       </p>
 
   <button
@@ -326,31 +327,47 @@ useEffect(() => {
           placeholder="Nhập việc cần làm..."
         />
 
-        <div className="relative w-full sm:w-60">
-  <input
-    type="datetime-local"
-    value={deadline}
-    onChange={(e) => setDeadline(e.target.value)}
-    className="border p-2 rounded w-full pr-10 appearance-none"
-  />
-<span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl pointer-events-none block sm:hidden">
+       {/* Thuộc tính (Ngày + Ưu tiên) */}
+<div className="relative w-full sm:w-auto">
+  {/* Nút bấm mở menu */}
+  <button
+    onClick={() => setShowAttributes(!showAttributes)}
+    className="flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded w-full sm:w-auto"
+  >
+    ⚙ Thuộc tính
+  </button>
 
-    📅
-  </span>
-</div>
+  {/* Menu xổ xuống */}
+  {showAttributes && (
+    <div className="absolute z-10 mt-2 p-3 bg-white rounded-lg shadow-lg border w-full sm:w-72 space-y-3">
+      {/* Chọn ngày */}
+      <div>
+        <label className="block text-sm text-gray-600 mb-1">Ngày hết hạn</label>
+        <input
+          type="datetime-local"
+          value={deadline}
+          onChange={(e) => setDeadline(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
+      </div>
 
-
-
-
+      {/* Chọn ưu tiên */}
+      <div>
+        <label className="block text-sm text-gray-600 mb-1">Mức ưu tiên</label>
         <select
           value={priority}
           onChange={(e) => setPriority(Number(e.target.value))}
-          className="border p-2 rounded w-full sm:w-40"
+          className="border p-2 rounded w-full"
         >
           <option value={1}>⚪ Thấp</option>
           <option value={2}>🟡 Vừa</option>
           <option value={3}>🔴 Cao</option>
         </select>
+      </div>
+    </div>
+  )}
+</div>
+
 
         <button
   type="button"
