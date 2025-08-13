@@ -1,6 +1,6 @@
 // firebase.js
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeApp, getApps } from "firebase/app";
+import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getMessaging } from "firebase/messaging";
 
@@ -14,10 +14,25 @@ const firebaseConfig = {
   measurementId: "G-18K9EZK1GK"
 };
 
-const app = initializeApp(firebaseConfig);
+// Khởi tạo app Firebase
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
+// Auth
 const auth = getAuth(app);
-const db = getFirestore(app);
-const messaging = getMessaging(app);
+const googleProvider = new GoogleAuthProvider();
+const facebookProvider = new FacebookAuthProvider();
 
-export { auth, db, messaging };
+// Firestore
+const db = getFirestore(app);
+
+// Messaging (chỉ chạy nếu trình duyệt hỗ trợ Notification)
+let messaging = null;
+if (typeof window !== "undefined" && "Notification" in window) {
+  try {
+    messaging = getMessaging(app);
+  } catch (err) {
+    console.warn("Không thể khởi tạo Messaging:", err);
+  }
+}
+
+export { auth, googleProvider, facebookProvider, db, messaging };
