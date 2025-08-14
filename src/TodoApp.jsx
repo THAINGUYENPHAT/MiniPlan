@@ -19,6 +19,41 @@ import {
 } from "firebase/firestore";
 
 function TodoApp({ user }) {
+
+  const handleUndoDelete = async () => {
+  if (lastDeletedTodos.length === 0) return;
+
+  const batch = lastDeletedTodos.map(todo =>
+    addDoc(todosRef, {
+      text: todo.text,
+      userId: todo.userId,
+      createdAt: todo.createdAt || serverTimestamp(),
+      done: todo.done,
+      deadline: todo.deadline,
+      priority: todo.priority,
+    })
+  );
+
+  await Promise.all(batch);
+  toast.success(`↩️ Phục hồi ${lastDeletedTodos.length} công việc`);
+  setLastDeletedTodos([]);
+};
+
+
+  const handleDeleteAll = async () => {
+  if (todos.length === 0) return;
+  
+  // Lưu tạm công việc để undo
+  setLastDeletedTodos(todos);
+
+  // Xóa từng todo
+  const batch = todos.map(todo => deleteDoc(doc(db, "todos", todo.id)));
+  await Promise.all(batch);
+
+  toast.success(`✅ Đã xóa tất cả (${todos.length}) công việc`);
+  };
+  const [lastDeletedTodos, setLastDeletedTodos] = useState([]);
+
   const [todayOpen, setTodayOpen] = useState(true);
   const [weekOpen, setWeekOpen] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -49,6 +84,26 @@ function TodoApp({ user }) {
     where("userId", "==", user.uid), // truy vấn đúng user
     orderBy("createdAt", "desc")
   );
+
+  const handleUndoDelete = async () => {
+  if (lastDeletedTodos.length === 0) return;
+
+  const batch = lastDeletedTodos.map(todo =>
+    addDoc(todosRef, {
+      text: todo.text,
+      userId: todo.userId,
+      createdAt: todo.createdAt || serverTimestamp(),
+      done: todo.done,
+      deadline: todo.deadline,
+      priority: todo.priority,
+    })
+  );
+
+  await Promise.all(batch);
+  toast.success(`↩️ Phục hồi ${lastDeletedTodos.length} công việc`);
+  setLastDeletedTodos([]);
+};
+
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
     const items = snapshot.docs.map((doc) => ({
@@ -115,12 +170,28 @@ useEffect(() => {
   if (!input.trim()) return alert("❌ Bạn chưa nhập nội dung công việc");
 
   try {
+    // Tạo ngày deadline mặc định là cuối ngày hôm nay
+    let finalDeadline;
+    if (deadline) {
+      finalDeadline = new Date(deadline);
+    } else {
+      const now = new Date();
+      finalDeadline = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        23, 59, 59 // đặt cuối ngày hôm nay
+      );
+    }
+
+
     await addDoc(todosRef, {
       text: input.trim(),
       userId: user.uid,
       createdAt: serverTimestamp(), // dùng đúng timestamp
       done: false,
-      deadline: deadline ? new Date(deadline) : null,
+      deadline: finalDeadline,
+
       priority,
     });
 
@@ -177,6 +248,8 @@ useEffect(() => {
 
   return (
   <div className="min-h-screen p-4 bg-gradient-to-br from-pink-50 to-blue-50 text-black relative">
+    
+
     
     <div className="relative mb-4">
   
@@ -266,6 +339,7 @@ useEffect(() => {
 
 
 
+
 <div className="bg-white/70 backdrop-blur-md p-4 rounded-2xl shadow-md border border-gray-200 mb-4">
   <h3
     className="text-lg font-bold mb-2 cursor-pointer flex justify-between items-center"
@@ -319,86 +393,105 @@ useEffect(() => {
 
 
 
-      <div className="flex flex-col sm:flex-row gap-2 mb-4">
-        <input
-          className="border p-2 rounded w-full sm:flex-1"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Nhập việc cần làm..."
-        />
+    <div className="flex flex-col sm:flex-row gap-2 mb-4">
+  {/* Nhập công việc */}
+  <input
+    className="border p-2 rounded w-full sm:flex-1"
+    value={input}
+    onChange={(e) => setInput(e.target.value)}
+    placeholder="Nhập việc cần làm..."
+  />
 
-       {/* Thuộc tính (Ngày + Ưu tiên) */}
-<div className="relative w-full sm:w-auto">
-  {/* Nút bấm mở menu */}
+  {/* Thuộc tính (Ngày + Ưu tiên) */}
+  <div className="relative w-full sm:w-auto">
+    {/* Nút mở menu */}
+    <button
+      onClick={() => setShowAttributes(!showAttributes)}
+      className="flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded w-full sm:w-auto"
+    >
+      ⚙ Thuộc tính
+    </button>
+
+    {/* Menu xổ xuống */}
+    {showAttributes && (
+      <div className="absolute top-full left-0 z-20 mt-2 p-3 bg-white rounded-lg shadow-lg border w-full sm:w-72 space-y-3">
+        {/* Chọn ngày */}
+        <div className="relative">
+          <label className="block text-sm text-gray-600 mb-1">Ngày hết hạn</label>
+          <input
+            type="datetime-local"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+            className="border p-2 rounded w-full pr-10"
+          />
+          <span className="absolute right-3 top-[34px] transform -translate-y-1/2 text-gray-400 text-xl pointer-events-none">
+            📅
+          </span>
+        </div>
+
+        {/* Chọn ưu tiên */}
+        <div>
+          <label className="block text-sm text-gray-600 mb-1">Mức ưu tiên</label>
+          <select
+            value={priority}
+            onChange={(e) => setPriority(Number(e.target.value))}
+            className="border p-2 rounded w-full"
+          >
+            <option value={1}>⚪ Thấp</option>
+            <option value={2}>🟡 Vừa</option>
+            <option value={3}>🔴 Cao</option>
+          </select>
+        </div>
+      </div>
+    )}
+  </div>
+
+  {/* Nút thêm công việc */}
   <button
-    onClick={() => setShowAttributes(!showAttributes)}
-    className="flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded w-full sm:w-auto"
+    type="button"
+    onClick={handleAdd}
+    className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-4 py-2 rounded-xl shadow-md flex items-center gap-2 transition transform hover:scale-105 active:scale-95 w-full sm:w-auto"
   >
-    ⚙ Thuộc tính
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+    </svg>
+    Thêm công việc
   </button>
-
-  {/* Menu xổ xuống */}
-  {showAttributes && (
-    <div className="absolute z-10 mt-2 p-3 bg-white rounded-lg shadow-lg border w-full sm:w-72 space-y-3">
-      {/* Chọn ngày */}
-      <div>
-        <label className="block text-sm text-gray-600 mb-1">Ngày hết hạn</label>
-        <input
-          type="datetime-local"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-          className="border p-2 rounded w-full"
-        />
-      </div>
-
-      {/* Chọn ưu tiên */}
-      <div>
-        <label className="block text-sm text-gray-600 mb-1">Mức ưu tiên</label>
-        <select
-          value={priority}
-          onChange={(e) => setPriority(Number(e.target.value))}
-          className="border p-2 rounded w-full"
-        >
-          <option value={1}>⚪ Thấp</option>
-          <option value={2}>🟡 Vừa</option>
-          <option value={3}>🔴 Cao</option>
-        </select>
-      </div>
-    </div>
-  )}
 </div>
 
 
-        <button
-  type="button"
-  onClick={handleAdd}
-  className="z-50 relative bg-pink-500 hover:bg-pink-600 text-white font-semibold px-4 py-2 rounded-xl shadow-md flex items-center gap-2 transition transform hover:scale-105 active:scale-95"
->
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
+  
+
+
+<div className="flex flex-wrap gap-2 mb-4">
+  <button
+    onClick={handleDeleteAll}
+    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition transform hover:scale-105"
   >
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-  </svg>
-  Thêm công việc
-</button>
+    🗑️ Xóa tất cả
+  </button>
 
+  <button
+    onClick={handleUndoDelete}
+    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition transform hover:scale-105"
+  >
+    ↩️ Quay lại
+  </button>
+</div>
 
+ {/* Nút toggle hiện/ẩn filter */}
+  <button
+    onClick={() => setShowFilters(!showFilters)}
+    className="bg-blue-500 text-white px-4 py-2 rounded-full shadow-md hover:bg-blue-600 transition flex items-center gap-2 mb-2"
+  >
+    🔍 Bộ lọc {showFilters ? "▲" : "▼"}
+  </button>
 
-
-      </div>
-
-      {/* Nút toggle hiện/ẩn filter */}
-<button
-  onClick={() => setShowFilters(!showFilters)}
-  className="bg-gray-300 px-3 py-2 rounded mb-2 hover:bg-gray-400 transition"
->
-  🔍 Bộ lọc {showFilters ? "▲" : "▼"}
-</button>
-
-{/* Bộ lọc, ẩn khi showFilters = false */}
 <div
   className={`overflow-hidden transition-all duration-300 ${
     showFilters ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
@@ -488,10 +581,11 @@ useEffect(() => {
     .map((todo) => (
       <li
         key={todo.id}
-        className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-gray-100 px-4 py-3 rounded text-base transition-all duration-300 ease-in-out hover:scale-[1.02] ${
+        className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-white/90 shadow-md border border-gray-200 px-4 py-3 rounded text-base transition-all duration-300 ease-in-out hover:scale-[1.02] ${
           todo.done ? "opacity-50 line-through" : ""
         }`}
       >
+
         <div className="flex-1">
           <p>
             {todo.text}
@@ -505,6 +599,8 @@ useEffect(() => {
             </p>
           )}
         </div>
+
+        
 
         <div className="flex items-center gap-2">
           <button
@@ -552,10 +648,11 @@ useEffect(() => {
 
 
       <footer className="text-center text-gray-400 text-sm mt-10">
-        © 2025 MiniPlan. Đạt mục tiêu dễ dàng mỗi ngày - sáng lập bởi Nguyên Phát
+        © 2025 MiniPlan. Đạt mục tiêu dễ dàng mỗi ngày - sáng lập bởi Kim Myy
       </footer>
     </div>
   );
 }
 
 export default TodoApp;
+

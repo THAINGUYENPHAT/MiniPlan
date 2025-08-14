@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { signOut, onAuthStateChanged } from "firebase/auth";
-import { getToken, onMessage } from "firebase/messaging";
 import { Toaster } from "react-hot-toast";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "./firebase";
+
 
 import { auth, messaging } from "./firebase";
 import Auth from "./Auth";
@@ -29,26 +31,8 @@ function App() {
     });
   }, []);
 
-  useEffect(() => {
-    getToken(messaging, {
-      vapidKey: "BOuTkXYpT5zCUKAmNcFJGACWtTC5jYQmCR5A_qn0y6U2gv24rUEokiaVgdHQGPp_d7RROYxxjUtIi3OPrJUZimU",
-    })
-      .then((currentToken) => {
-        if (currentToken) {
-          console.log("📱 FCM Token:", currentToken);
-        } else {
-          console.warn("Không lấy được token.");
-        }
-      })
-      .catch((err) => {
-        console.error("Lỗi khi lấy token: ", err);
-      });
 
-    onMessage(messaging, (payload) => {
-      console.log("🔔 Thông báo nhận được:", payload);
-      alert(payload.notification?.title || "Thông báo mới");
-    });
-  }, []);
+
 
   if (loading) {
     return <p className="text-center mt-10 text-gray-500">Đang tải dữ liệu...</p>;
